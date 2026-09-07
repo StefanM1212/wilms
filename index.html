@@ -172,6 +172,7 @@
   .cookie{position:fixed;left:16px;right:16px;bottom:16px;z-index:60;margin:0 auto;max-width:740px;
     background:var(--surface);border:1px solid var(--line-strong);border-radius:16px;box-shadow:var(--shadow-lg);
     padding:16px 18px;display:flex;flex-wrap:wrap;gap:12px 16px;align-items:center;justify-content:space-between;}
+  .cookie[hidden]{display:none !important;}
   .cookie p{margin:0;font-size:.85rem;color:var(--muted);flex:1 1 300px;line-height:1.45;}
   .cookie-link{background:none;border:0;padding:0;cursor:pointer;font:inherit;color:var(--primary);
     text-decoration:underline;font-weight:600;}
@@ -341,9 +342,8 @@
 <script>
 (function(){
   /* ===== Webhook =====
-     Trage hier deine Webhook-URL ein (kommt gleich). Solange leer, wird nichts
-     gesendet – die Daten landen dann nur in der Browser-Konsole zum Testen. */
-  var WEBHOOK_URL = ""; // <-- HIER die Webhook-URL eintragen
+     Zapier Catch Hook – hier landen die Leads. */
+  var WEBHOOK_URL = "https://hooks.zapier.com/hooks/catch/9616404/4h0o0v4/";
 
   var form = document.getElementById('leadForm');
   var msg  = document.getElementById('formMsg');
@@ -373,12 +373,16 @@
       };
 
       if(WEBHOOK_URL){
-        fetch(WEBHOOK_URL, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
-        }).then(function(r){ done(r.ok); }).catch(function(){ done(false); });
+        /* form-encoded = "simple request": kein CORS-Preflight, Zapier parst die
+           Felder trotzdem sauber als einzelne Werte. */
+        var body = new URLSearchParams();
+        Object.keys(data).forEach(function(k){ body.append(k, data[k]); });
+        fetch(WEBHOOK_URL, { method:'POST', body: body })
+          .then(function(r){ done(r.ok); })
+          .catch(function(){ done(false); });
       } else {
-        console.warn('Kein WEBHOOK_URL hinterlegt. Erfasste Daten:', data);
-        done(true);
+        console.error('Kein WEBHOOK_URL hinterlegt – Lead wurde NICHT gesendet:', data);
+        done(false);
       }
     });
   }
